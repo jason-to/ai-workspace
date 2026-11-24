@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""把文本乐谱（.score）渲染成 MP3/WAV 和 MIDI。
+"""把文本乐谱（.score）渲染成 MP3（无 ffmpeg 时为 WAV）。
 
 用法:
-    python3 render.py song.score -o out/song        # 生成 out/song.mp3 (+ .wav 若无 ffmpeg) 和 out/song.mid
+    python3 render.py song.score -o out/song        # 生成 out/song.mp3（无 ffmpeg 时为 .wav）
+    python3 render.py song.score --midi             # 额外输出 .mid（仅在用户要求时使用）
     python3 render.py song.score --check            # 只检查每小节时值，不渲染
     python3 render.py song.score --bars 5-12        # 只渲染第 5~12 小节
     python3 render.py song.score --tempo 90         # 覆盖速度
@@ -196,6 +197,7 @@ def main():
     ap.add_argument('-o', '--out', help='输出路径（不含扩展名），默认与乐谱同名')
     ap.add_argument('--check', action='store_true', help='只检查小节时值')
     ap.add_argument('--bars', help='只渲染某段小节，如 5-12')
+    ap.add_argument('--midi', action='store_true', help='额外输出 MIDI 文件')
     ap.add_argument('--tempo', type=float, help='覆盖速度 (BPM)')
     args = ap.parse_args()
 
@@ -219,14 +221,16 @@ def main():
     with wave.open(str(wav), 'wb') as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes(pcm.tobytes())
-    write_midi(out.with_suffix('.mid'), events, voices, bpm)
     if shutil.which('ffmpeg'):
         subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', str(wav), '-b:a', '192k',
                         str(out.with_suffix('.mp3'))], check=True)
         wav.unlink()
-        print("输出:", out.with_suffix('.mp3'), out.with_suffix('.mid'))
+        print("输出:", out.with_suffix('.mp3'))
     else:
-        print("输出:", wav, out.with_suffix('.mid'))
+        print("输出:", wav)
+    if args.midi:
+        write_midi(out.with_suffix('.mid'), events, voices, bpm)
+        print("输出:", out.with_suffix('.mid'))
     print(f"时长 {len(pcm) / SR:.1f} 秒, ♩={bpm:g}")
 
 

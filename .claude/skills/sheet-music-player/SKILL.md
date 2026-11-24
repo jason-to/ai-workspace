@@ -1,13 +1,13 @@
 ---
 name: sheet-music-player
-description: 把五线谱（图片、截图、PDF 里的钢琴谱等）识读成音符并播放出来，生成 MP3 和 MIDI。用户发来乐谱图片并说“播放这个谱子”“弹一下”“这谱子听起来什么样”“把谱子转成音频/MIDI”，或要求修改已转好的某几小节时使用。
+description: 把五线谱（图片、截图、PDF 里的钢琴谱等）识读成音符并播放出来，生成 MP3。用户发来乐谱图片并说“播放这个谱子”“弹一下”“这谱子听起来什么样”“把谱子转成音频”，或要求修改已转好的某几小节时使用。
 ---
 
 # 五线谱 → 音频
 
 流程：看谱 → 写成 `.score` 文本 → 检查小节时值 → 渲染 → 把音频发给用户 → 说明哪些地方没把握。
 
-`scripts/render.py` 只依赖 numpy；有 ffmpeg 时输出 MP3，否则输出 WAV，同时输出 MIDI。
+`scripts/render.py` 只依赖 numpy；有 ffmpeg 时输出 MP3，否则输出 WAV。默认只交付 MP3，不生成 MIDI；用户明确要 MIDI 时才加 `--midi`。
 
 ## 1. 先读全局信息
 
@@ -52,7 +52,7 @@ E3:2 C3:.5 D3:.25 E3:.25~ E3:1 | ...
 
 ```bash
 python3 scripts/render.py song.score --check              # 列出拍数不对的小节，有问题时退出码为 1
-python3 scripts/render.py song.score -o <输出目录>/song    # 生成 song.mp3 和 song.mid
+python3 scripts/render.py song.score -o <输出目录>/song    # 只生成 song.mp3
 python3 scripts/render.py song.score --bars 9-12          # 只渲染这几小节，用来核对片段
 python3 scripts/render.py song.score --tempo 60           # 临时改速度
 ```
@@ -61,7 +61,7 @@ python3 scripts/render.py song.score --tempo 60           # 临时改速度
 
 ## 4. 交付
 
-- 用 SendUserFile 发 MP3，`display: "render"`，用户可以直接播放。MIDI 作为附件一起发，用户能导入 GarageBand、MuseScore 等软件换成真乐器音色。
+- 用 SendUserFile 发 MP3，`display: "render"`，用户可以直接播放。只发 MP3，不要附带 MIDI 或其他文件。
 - 把 `.score` 文件保存在用户看得到的地方，告诉用户路径。以后改某一小节就是改一行文本。
 - 说清楚：转了第几到第几小节；速度和调；哪些小节是看不清、靠估计的。说明时用小节号加歌词定位。
 - 你听不到音频。只说“已生成”，不要说“听起来正确”。
