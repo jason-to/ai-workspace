@@ -146,7 +146,7 @@ def tone(midi, dur_s, vel):
 
 def render_audio(events, voices, bpm):
     beat = 60 / bpm
-    end = max((float(s + d) for _, s, d, _ in events), default=0) * beat + 3
+    end = max((float(s + d) * beat + voices[vi]['pedal'] for vi, s, d, _ in events), default=0) + 0.1
     buf = np.zeros(int(SR * end))
     for vi, s, d, mid in events:
         v = voices[vi]
@@ -154,6 +154,12 @@ def render_audio(events, voices, bpm):
         a = int(SR * float(s) * beat)
         buf[a:a + len(w)] += w[:len(buf) - a]
     peak = np.max(np.abs(buf)) or 1
+    # 去掉结尾几乎听不见的余音（低于峰值 -50dB），再加 0.15 秒淡出，避免结尾空白
+    loud = np.nonzero(np.abs(buf) > peak * 10 ** (-50 / 20))[0]
+    if len(loud):
+        buf = buf[:loud[-1] + 1]
+        fade = min(len(buf), int(0.15 * SR))
+        buf[-fade:] *= np.linspace(1, 0, fade)
     return (buf / peak * 0.9 * 32767).astype(np.int16)
 
 
